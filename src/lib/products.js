@@ -78,7 +78,7 @@ export async function createProduct(product) {
 
   if (!db) {
     const created = {
-      id: fallbackProducts.length + 1,
+      id: fallbackProducts.length ? Math.max(...fallbackProducts.map((item) => item.id)) + 1 : 1,
       name,
       description,
       price,
@@ -102,4 +102,78 @@ export async function createProduct(product) {
   );
 
   return rows[0];
+}
+
+export async function updateProductById(id, updates) {
+  const db = tryDb();
+
+  if (!db) {
+    const productIndex = fallbackProducts.findIndex((item) => item.id === id);
+
+    if (productIndex === -1) {
+      return null;
+    }
+
+    const current = fallbackProducts[productIndex];
+    const updated = {
+      ...current,
+      name: updates.name ?? current.name,
+      description: updates.description ?? current.description,
+      price: updates.price ?? current.price,
+      original_price: updates.originalPrice ?? current.original_price,
+      sku: updates.sku ?? current.sku,
+      rating: updates.rating ?? current.rating,
+      review_count: updates.reviewCount ?? current.review_count,
+      images: updates.images ?? current.images,
+    };
+
+    fallbackProducts[productIndex] = updated;
+    return updated;
+  }
+
+  const { rows } = await db.query(
+    `UPDATE products
+     SET
+      name = COALESCE($2, name),
+      description = COALESCE($3, description),
+      price = COALESCE($4, price),
+      original_price = COALESCE($5, original_price),
+      sku = COALESCE($6, sku),
+      rating = COALESCE($7, rating),
+      review_count = COALESCE($8, review_count),
+      images = COALESCE($9, images)
+     WHERE id = $1
+     RETURNING id, name, description, price, original_price, sku, rating, review_count, images, created_at`,
+    [
+      id,
+      updates.name ?? null,
+      updates.description ?? null,
+      updates.price ?? null,
+      updates.originalPrice ?? null,
+      updates.sku ?? null,
+      updates.rating ?? null,
+      updates.reviewCount ?? null,
+      updates.images ?? null,
+    ],
+  );
+
+  return rows[0] ?? null;
+}
+
+export async function deleteProductById(id) {
+  const db = tryDb();
+
+  if (!db) {
+    const productIndex = fallbackProducts.findIndex((item) => item.id === id);
+
+    if (productIndex === -1) {
+      return false;
+    }
+
+    fallbackProducts.splice(productIndex, 1);
+    return true;
+  }
+
+  const result = await db.query("DELETE FROM products WHERE id = $1", [id]);
+  return result.rowCount > 0;
 }
