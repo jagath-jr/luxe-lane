@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteProductById, getProductById, updateProductById } from "@/lib/products";
+import { isAdminAuthorized } from "@/lib/adminAuth";
 
 function parseId(params) {
   const id = Number(params.id);
@@ -36,6 +37,10 @@ export async function GET(_request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
+    if (!isAdminAuthorized(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = parseId(params);
 
     if (!id) {
@@ -58,8 +63,12 @@ export async function PATCH(request, { params }) {
   }
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
   try {
+    if (!isAdminAuthorized(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const id = parseId(params);
 
     if (!id) {

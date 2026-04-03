@@ -83,3 +83,10 @@ npm run dev
   "images": ["https://example.com/image1.jpg"]
 }
 ```
+
+
+## Admin Portal
+
+- Visit `/admin` for the admin portal.
+- Use `ADMIN_PORTAL_KEY` from env to log in.
+- Product write actions (`POST`, `PATCH`, `DELETE`) require this key via Authorization header.
