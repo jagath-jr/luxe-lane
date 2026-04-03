@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS products (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  price NUMERIC(10, 2) NOT NULL,
+  original_price NUMERIC(10, 2) NOT NULL,
+  sku TEXT NOT NULL UNIQUE,
+  rating NUMERIC(2, 1) DEFAULT 0,
+  review_count INTEGER DEFAULT 0,
+  images TEXT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
