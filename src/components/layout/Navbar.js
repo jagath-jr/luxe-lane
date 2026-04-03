@@ -117,6 +117,11 @@ export default function Navbar() {
               <ChevronDown />
             </Link>
           </li>
+          <li className="nav-item">
+            <Link href="/admin" className="flex items-center gap-1 hover:text-gray-600 transition-colors">
+              Admin
+            </Link>
+          </li>
         </ul>
       </div>
 
@@ -156,6 +161,11 @@ export default function Navbar() {
           <Link href="/kids" onClick={closeMenu} className="mobile-link flex items-center justify-between text-lg text-black hover:text-gray-600">
             Kids
             <ChevronDown />
+          </Link>
+          <div className="mobile-link w-full h-px bg-gray-100"></div> {/* Divider */}
+
+          <Link href="/admin" onClick={closeMenu} className="mobile-link flex items-center justify-between text-lg text-black hover:text-gray-600">
+            Admin
           </Link>
         </div>
       </div>
