@@ -18,7 +18,7 @@ export async function POST(request) {
     const body = await request.json();
 
     const requiredFields = ["name", "description", "price", "originalPrice", "sku"];
-    const missing = requiredFields.filter((field) => !body[field]);
+    const missing = requiredFields.filter((field) => body[field] === undefined || body[field] === null || body[field] === "");
 
     if (missing.length > 0) {
       return NextResponse.json(

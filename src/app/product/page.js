@@ -1,122 +1,160 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
+import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+
+const defaultAccordions = [
+  {
+    title: "Description",
+    content:
+      "Elevate your wardrobe with premium craftsmanship and modern tailoring built for daily wear.",
+  },
+  {
+    title: "Material & Dimensions",
+    content:
+      "Breathable outer layer, soft inner lining, and a true-to-size fit designed for comfort.",
+  },
+  {
+    title: "Wash Care",
+    content:
+      "Dry clean preferred. If hand-washing, use cold water and dry in shade.",
+  },
+  {
+    title: "Additional Information",
+    content:
+      "Quality checked before shipping. Reach out to support for size help or bulk inquiries.",
+  },
+];
 
 export default function ProductPage() {
   const pageRef = useRef(null);
-
-  // --- State ---
   const [activeImage, setActiveImage] = useState(0);
-  const [openAccordion, setOpenAccordion] = useState(0); // 0 means first is open by default
+  const [openAccordion, setOpenAccordion] = useState(0);
+  const [product, setProduct] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [cartNotice, setCartNotice] = useState("");
 
-  // Dummy product images (Replace with your actual images)
-  const images = [
-    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop&sig=1",
-    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop&sig=2",
-    "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop&sig=3",
-  ];
-
-  const accordions = [
-    {
-      title: "Description",
-      content: "Elevate your wardrobe with our Modern Classic Jacket. Tailored to perfection, this piece features a sharp silhouette, premium stitching, and a versatile design that easily transitions from formal events to smart-casual outings. Experience unmatched comfort without compromising on style."
-    },
-    {
-      title: "Material & Dimensions",
-      content: "Outer shell: 100% Premium Blended Wool. Inner lining: 100% Viscose. True to size fit. Model is 6'1\" and wearing a size Medium."
-    },
-    {
-      title: "Wash Care",
-      content: "Dry clean only. Do not bleach. Iron on low heat if necessary. Store in a cool, dry place away from direct sunlight."
-    },
-    {
-      title: "Additional Information",
-      content: "Manufactured in India. 100% Quality Guaranteed. For bulk inquiries, please reach out to our support team."
-    }
-  ];
-
-  // --- GSAP Entrance Animation ---
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // Animate gallery column
-      gsap.from('.gallery-anim', {
+      gsap.from(".gallery-anim", {
         y: 40,
         opacity: 0,
         duration: 1,
-        ease: 'power3.out',
+        ease: "power3.out",
       });
 
-      // Stagger animate details column
-      gsap.from('.detail-anim', {
+      gsap.from(".detail-anim", {
         x: 30,
         opacity: 0,
         duration: 0.8,
         stagger: 0.1,
-        ease: 'power3.out',
-        delay: 0.2
+        ease: "power3.out",
+        delay: 0.2,
       });
     }, pageRef);
 
     return () => ctx.revert();
   }, []);
 
+  useEffect(() => {
+    async function loadProduct() {
+      try {
+        setIsLoading(true);
+        const response = await fetch("/api/products", { cache: "no-store" });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to load products.");
+        }
+
+        if (!payload?.data?.length) {
+          throw new Error("No products found.");
+        }
+
+        setProduct(payload.data[0]);
+      } catch (fetchError) {
+        setError(fetchError.message || "Something went wrong while loading product data.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadProduct();
+  }, []);
+
   const toggleAccordion = (index) => {
     setOpenAccordion(openAccordion === index ? null : index);
   };
 
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    const key = "luxe_lane_cart";
+    const currentCart = JSON.parse(localStorage.getItem(key) || "[]");
+    currentCart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0] || "",
+      quantity: 1,
+    });
+
+    localStorage.setItem(key, JSON.stringify(currentCart));
+    setCartNotice(`${product.name} added to cart.`);
+
+    window.setTimeout(() => setCartNotice(""), 2000);
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-lg">Loading product...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-600">{error}</div>;
+  }
+
+  const images = product?.images?.length
+    ? product.images
+    : ["https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop"];
+
+  const price = Number(product?.price || 0);
+  const originalPrice = Number(product?.original_price || price);
+  const discount = originalPrice > 0 ? (((originalPrice - price) / originalPrice) * 100).toFixed(1) : 0;
+
   return (
     <div ref={pageRef} className="w-full min-h-screen bg-white pb-24 pt-4 md:pt-12 text-black">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-16">
-          
-          {/* ==========================================
-              LEFT: PRODUCT GALLERY
-          ========================================== */}
           <div className="gallery-anim w-full lg:w-1/2 flex flex-col gap-4">
-            
-            {/* Main Image */}
             <div className="w-full aspect-[4/5] bg-[#f0f0f0] rounded-[2rem] overflow-hidden relative">
-              <img 
-                src={images[activeImage]} 
-                alt="Modern Classic Jacket" 
+              <img
+                src={images[activeImage]}
+                alt={product?.name || "Product image"}
                 className="w-full h-full object-cover object-top transition-opacity duration-500"
               />
             </div>
 
-            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-3 md:gap-4">
               {images.map((img, index) => (
-                <button 
-                  key={index}
+                <button
+                  key={img}
                   onClick={() => setActiveImage(index)}
                   className={`w-full aspect-square bg-[#f0f0f0] rounded-xl overflow-hidden border-2 transition-all ${
-                    activeImage === index ? 'border-black' : 'border-transparent hover:border-gray-300'
+                    activeImage === index ? "border-black" : "border-transparent hover:border-gray-300"
                   }`}
                 >
-                  <img 
-                    src={img} 
-                    alt={`Thumbnail ${index + 1}`} 
-                    className="w-full h-full object-cover object-top"
-                  />
+                  <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover object-top" />
                 </button>
               ))}
             </div>
           </div>
 
-          {/* ==========================================
-              RIGHT: PRODUCT DETAILS
-          ========================================== */}
           <div className="w-full lg:w-1/2 flex flex-col">
-            
-            {/* Title */}
             <h1 className="detail-anim text-3xl md:text-5xl font-medium uppercase tracking-tight leading-tight mb-3">
-              Modern Classic<br />Jacket
+              {product?.name}
             </h1>
 
-            {/* Ratings & SKU */}
             <div className="detail-anim flex flex-col gap-2 mb-6">
               <div className="flex items-center gap-2">
                 <div className="flex text-black">
@@ -127,48 +165,46 @@ export default function ProductPage() {
                   <StarHalfIcon className="w-4 h-4 md:w-5 md:h-5" />
                 </div>
                 <span className="text-xs md:text-sm text-gray-600 font-medium tracking-wide">
-                  (5 OUT OF 5)(6 REVIEWS)
+                  ({product?.rating || 0} / 5) ({product?.review_count || 0} reviews)
                 </span>
               </div>
               <p className="text-xs md:text-sm text-gray-500 font-medium tracking-wide uppercase">
-                SKU: MIRROR BLACK
+                SKU: {product?.sku}
               </p>
             </div>
 
-            {/* Price */}
             <div className="detail-anim flex items-center gap-4 mb-8">
-              <span className="text-3xl md:text-4xl font-medium text-[#1c5560]">₹2499</span>
-              <span className="text-lg text-gray-400 line-through">₹3500</span>
+              <span className="text-3xl md:text-4xl font-medium text-[#1c5560]">₹{price.toFixed(2)}</span>
+              <span className="text-lg text-gray-400 line-through">₹{originalPrice.toFixed(2)}</span>
               <span className="bg-[#e5e5e5] text-gray-500 text-xs font-bold px-3 py-1.5 rounded-md tracking-wide">
-                28.6% OFF
+                {discount}% OFF
               </span>
             </div>
 
-            {/* Action Buttons */}
             <div className="detail-anim flex flex-col gap-3 mb-8">
               <div className="flex gap-3">
-                {/* Add to Cart (Styled as disabled/light gray to match image) */}
-                <button className="flex-1 bg-[#d5dbe0] text-white flex items-center justify-center gap-2 py-3.5 rounded-sm font-semibold hover:bg-gray-400 transition-colors">
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 bg-[#1c5560] text-white flex items-center justify-center gap-2 py-3.5 rounded-sm font-semibold hover:bg-[#17464f] transition-colors"
+                >
                   <CartIcon className="w-5 h-5" />
                   Add to Cart
                 </button>
-                {/* Wishlist */}
                 <button className="w-14 bg-black text-white flex items-center justify-center rounded-sm hover:bg-gray-800 transition-colors">
                   <HeartIcon className="w-5 h-5" />
                 </button>
-                {/* WhatsApp */}
                 <button className="w-14 bg-[#25D366] text-white flex items-center justify-center rounded-sm hover:bg-[#1ebe57] transition-colors">
                   <WhatsAppIcon className="w-6 h-6" />
                 </button>
               </div>
-              
-              {/* Buy It Now */}
+
+              {cartNotice ? <p className="text-sm text-green-700">{cartNotice}</p> : null}
+
               <button className="w-full bg-black text-white font-medium py-3.5 rounded-sm hover:bg-gray-800 transition-colors text-lg">
                 Buy It Now
               </button>
             </div>
 
-            {/* Features Row */}
             <div className="detail-anim grid grid-cols-3 gap-2 border-y border-gray-200 py-6 mb-8">
               <div className="flex flex-col items-center justify-center gap-2 text-center">
                 <TruckIcon className="w-6 h-6 text-black" />
@@ -184,43 +220,39 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Accordions */}
             <div className="detail-anim flex flex-col w-full">
-              {accordions.map((item, index) => (
-                <div key={index} className="border-b border-gray-200">
-                  <button 
+              {defaultAccordions.map((item, index) => (
+                <div key={item.title} className="border-b border-gray-200">
+                  <button
                     onClick={() => toggleAccordion(index)}
                     className="w-full py-5 flex justify-between items-center text-left focus:outline-none hover:text-gray-600 transition-colors"
                   >
-                    <span className="text-sm font-semibold text-black tracking-wide">
-                      {item.title}
-                    </span>
-                    <ChevronDownIcon 
-                      className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${openAccordion === index ? 'rotate-180' : ''}`} 
+                    <span className="text-sm font-semibold text-black tracking-wide">{item.title}</span>
+                    <ChevronDownIcon
+                      className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${
+                        openAccordion === index ? "rotate-180" : ""
+                      }`}
                     />
                   </button>
-                  
-                  {/* Expandable Content */}
-                  <div 
+
+                  <div
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      openAccordion === index ? 'max-h-40 opacity-100 mb-5' : 'max-h-0 opacity-0'
+                      openAccordion === index ? "max-h-40 opacity-100 mb-5" : "max-h-0 opacity-0"
                     }`}
                   >
                     <p className="text-sm text-gray-600 leading-relaxed">
-                      {item.content}
+                      {item.title === "Description" ? product?.description : item.content}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-
           </div>
         </div>
       </div>
     </div>
   );
 }
-
 // --- SVG Icons ---
 
 function StarSolidIcon({ className }) {
